@@ -5,5 +5,8 @@ package com.github.tyang513
  *
  */
 object App {
-  println( "Hello World!" )
+
+  def main(args: Array[String]): Unit = {
+    println("x")
+  }
 }
