@@ -22,6 +22,12 @@ release() {
     version=$(echo $version_snapshot | sed 's/-SNAPSHOT$//')
     echo "当前版本号: $version"
 
+    tag_name=v$version
+    if git rev-parse --verify "refs/tags/$tag_name" >/dev/null 2>&1; then
+        echo "版本 $version 的 '$tag_name' 已经存在"
+        exit 1
+    fi
+
     mvn versions:set -DnewVersion=$version
     echo "versions set $version"
 
@@ -34,8 +40,6 @@ release() {
     mvn clean package
 
     mvn install
-
-    tag_name=v$version
 
     commit_id=$(git log -1 --pretty=format:%h)
 
