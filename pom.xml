@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.tyang513</groupId>
   <artifactId>streaming-rules-engine</artifactId>
-  <version>1.0.13</version>
+  <version>1.1.0-SNAPSHOT</version>
   <inceptionYear>2008</inceptionYear>
   <properties>
     <scala.version>2.11.0</scala.version>
