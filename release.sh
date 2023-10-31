@@ -138,9 +138,12 @@ feature_branch() {
         exit 1
     fi
 
-    new_version=$(newVersion "$version" 1)-SNAPSHOT
+    local master_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+    echo "master 项目版本号: $master_version"
+    
+    local new_version=$(newVersion "$master_version" 1)-SNAPSHOT
 
-    branch_name=feature-$new_version
+    local branch_name=feature-$new_version
 
     git checkout -b $branch_name
     if [ $? -ne 0 ]; then
@@ -165,12 +168,12 @@ hotfix_branch() {
         exit 1
     fi
 
-    master_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+    local master_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
     echo "master 项目版本号: $master_version"
 
-    hotfix_new_version=$(newVersion "$master_version" 2)-SNAPSHOT
+    local hotfix_new_version=$(newVersion "$master_version" 2)-SNAPSHOT
 
-    hotfix_branch_name=hotfix-$hotfix_new_version
+    local hotfix_branch_name=hotfix-$hotfix_new_version
 
     git checkout -b $hotfix_branch_name
     if [ $? -ne 0 ]; then
