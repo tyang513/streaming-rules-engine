@@ -89,10 +89,10 @@ feature_branch() {
     git checkout -b $branch_name
     if [ $? -ne 0 ]; then
         #/ 命令执行失败
-        echo "命令执行失败，脚本将退出"
+        echo "创建 feature 分支 $branch_name 失败"
         exit 1
     fi
-    
+
     mvn versions:set -DnewVersion=$new_version
 
     find . -type f -name "pom.xml" -exec git add {} \;  # 将所有修改添加到暂存区
@@ -115,7 +115,7 @@ hotfix_branch() {
     git checkout -b $hotfix_branch_name
     if [ $? -ne 0 ]; then
         #/ 命令执行失败
-        echo "命令执行失败，脚本将退出"
+        echo "创建 hotfix 分支 $hotfix_branch_name 失败"
         exit 1
     fi
 
