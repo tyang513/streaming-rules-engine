@@ -81,8 +81,10 @@ release() {
     echo "git commit update version to $version"
 
     mvn clean package
+    echo "mvn clean package"
 
     mvn install
+    echo "mvn install"
 
     commit_id=$(git log -1 --pretty=format:%h)
 
@@ -203,7 +205,6 @@ while [ $# -gt 0 ]; do
       exit 1
       ;;
   esac
-  shift
 done
 
 exit $?
