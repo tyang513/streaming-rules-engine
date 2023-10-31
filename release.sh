@@ -121,7 +121,7 @@ newVersion() {
     fi
 
     # 增加指定位置的数字
-    parts[$position]=$((parts[$position] + 1))
+    # parts[$position]=$((parts[$position] + 1))
 
     # 重新构建版本号
     local new_version="${parts[0]}.${parts[1]}.${parts[2]}"
@@ -140,7 +140,7 @@ feature_branch() {
 
     local master_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
     echo "master 项目版本号: $master_version"
-    
+
     local new_version=$(newVersion "$master_version" 1)-SNAPSHOT
 
     local branch_name=feature-$new_version
