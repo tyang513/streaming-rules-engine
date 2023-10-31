@@ -20,6 +20,8 @@ EOF
   exit 1
 }
 
+echo "参数个数为 $#"
+
 # if no args specified, show usage
 [ $# -gt 1 ] || usage
 
@@ -183,8 +185,8 @@ hotfix_branch() {
 }
 
 # get arguments
-while [ $# -ge 1 ]; then
-  nameStartOpt="$2"
+while [ $# -gt 0 ]; do
+  nameStartOpt="$1"
   echo $nameStartOpt
   shift
   case "$nameStartOpt" in
