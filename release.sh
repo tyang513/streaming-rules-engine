@@ -2,44 +2,53 @@
 
 basedir=$(pwd)
 
-git pull
-echo "git pull"
+echo "当前目录为: $basedir"
 
-version_snapshot=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-echo "项目版本号: $version_snapshot"
+release() {
+    git pull
+    echo "git pull"
 
-version=$(echo $version_snapshot | sed 's/-SNAPSHOT$//')
-echo "当前版本号: $version"
+    version_snapshot=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+    echo "项目版本号: $version_snapshot"
 
-mvn versions:set -DnewVersion=$version
-echo "versions set $version"
+    # 检查版本号是否包含 -SNAPSHOT
+    if [[ $version_snapshot == *-SNAPSHOT* ]]; then
+        echo "版本号包含 -SNAPSHOT"
+    else
+        echo "版本号不包含 -SNAPSHOT"
+        exit 1
+    fi
 
-git add **/pom.xml
-echo "git add 所有pom.xml"
+    version=$(echo $version_snapshot | sed 's/-SNAPSHOT$//')
+    echo "当前版本号: $version"
 
-git commit -m "update version to $version"
-echo "git commit update version to $version"
+    mvn versions:set -DnewVersion=$version
+    echo "versions set $version"
 
-mvn clean package
+    find . -type f -name "pom.xml" -exec git add {} \;
+    echo "git add 所有pom.xml"
 
-mvn install
+    git commit -m "update version to $version"
+    echo "git commit update version to $version"
 
-tag_name=v$version
+    mvn clean package
 
-commit_id=$(git log -1 --pretty=format:%h)
+    mvn install
 
-git tag -a $tag_name $commit_id -m "release version $tag_name"
-git push origin $tag_name
-git push
+    tag_name=v$version
 
+    commit_id=$(git log -1 --pretty=format:%h)
+
+    git tag -a $tag_name $commit_id -m "release version $tag_name"
+    git push origin $tag_name
+    git push
+}
+# 增加版本号中指定位置的数字
+# 参数1: 版本号，如 "1.2.3"
+# 参数2: 要增加的位置，0表示主版本号，1表示次版本号，2表示修订号
 newVersion() {
     local version="$1"
-    local position="$2"
-
-    # 检查是否为空，如果为空，则设置默认值为 3
-    if [ -z "$position" ]; then
-        position=2  # 默认为修订号
-    fi
+    local position="${2:-2}"
 
     # 分割版本号
     IFS='.' read -ra parts <<< "$version"
@@ -48,6 +57,18 @@ newVersion() {
     if [ ${#parts[@]} -lt 3 ]; then
         echo "版本号格式不正确,必须为 X.Y.Z 格式"
         exit 1
+    fi
+
+    # 根据不同的位置修改版本号
+    if [ "$position" == "0" ]; then
+        parts[0]=$((parts[0] + 1))
+        parts[1]=0
+        parts[2]=0
+    elif [ "$position" == "1" ]; then
+        parts[1]=$((parts[1] + 1))
+        parts[2]=0
+    elif [ "$position" == "2" ]; then
+        parts[2]=$((parts[2] + 1))
     fi
 
     # 增加指定位置的数字
@@ -59,13 +80,74 @@ newVersion() {
     echo "$new_version"
 }
 
-new_version=$(newVersion "$version" "$position")-SNAPSHOT
+feature_branch() {
 
-branch_name=feature-$new_version
+    new_version=$(newVersion "$version" 1)-SNAPSHOT
 
-git checkout -b $branch_name
-mvn versions:set -DnewVersion=$new_version
+    branch_name=feature-$new_version
 
-git add **/pom.xml  # 将所有修改添加到暂存区
-git commit -m "创建新版本分支 $new_version"  # 提交修改
-git push origin $branch_name
+    git checkout -b $branch_name
+    if [ $? -ne 0 ]; then
+        #/ 命令执行失败
+        echo "命令执行失败，脚本将退出"
+        exit 1
+    fi
+    
+    mvn versions:set -DnewVersion=$new_version
+
+    find . -type f -name "pom.xml" -exec git add {} \;  # 将所有修改添加到暂存区
+    git commit -m "创建新版本分支 $new_version"  # 提交修改
+    git push origin $branch_name
+}
+
+hotfix_branch() {
+
+    git checkout master
+    echo "切换到 master 分支"
+
+    master_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+    echo "master 项目版本号: $master_version"
+
+    hotfix_new_version=$(newVersion "$master_version" 2)-SNAPSHOT
+
+    hotfix_branch_name=hotfix-$hotfix_new_version
+
+    git checkout -b $hotfix_branch_name
+    if [ $? -ne 0 ]; then
+        #/ 命令执行失败
+        echo "命令执行失败，脚本将退出"
+        exit 1
+    fi
+
+    mvn versions:set -DnewVersion=$hotfix_new_version
+
+    find . -type f -name "pom.xml" -exec git add {} \;  # 将所有修改添加到暂存区
+    git commit -m "创建 hotfix 版本分支 $hotfix_new_version"  # 提交修改
+    git push origin $hotfix_branch_name
+}
+
+# get arguments
+if [ $# -ge 1 ]; then
+  nameStartOpt="$1"
+  echo $nameStartOpt
+  shift
+  case "$nameStartOpt" in
+    (-r | --release)
+      git checkout master
+      release
+      ;;
+    (-fb | --feature-branch)
+      git checkout master
+      feature_branch
+      ;;
+    (-hb | --hotfix-branch)
+      git checkout master
+      hotfix_branch
+    (*)
+      echo $usage
+      exit 1
+      ;;
+  esac
+fi
+
+exit $?
