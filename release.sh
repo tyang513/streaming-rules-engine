@@ -2,9 +2,50 @@
 
 basedir=$(pwd)
 
+usage()
+{
+  cat <<EOF
+Usage: ${0##*/} <branch_name> <-r|--release|-fb|--feature-branch|-hb|--hotfix-branch>
+  
+  branch_name: 需要进行操作的分支名称,版本号规则为 X.Y.Z 其中必须全为数字
+
+  Options:
+    -r, --release          : 发布指定分支版本,发布后当前版本 X.Y.Z-SNAPSHOT 变为 X.Y.Z
+    -fb, --feature-branch  : 通过已发布的分支创建功能开始分支,分支版本号为 branch_name 版本的次版本号加 1
+    -hb, --hotfix-branch   : 通过已发布的分支创建缺陷修复分支,分支版本号为 branch_name 版本的修订版本号加 1
+  
+  Example:
+    ${0##*/} main -r
+EOF
+  exit 1
+}
+
+# if no args specified, show usage
+[ $# -gt 1 ] || usage
+
 echo "当前目录为: $basedir"
 
+main_branch_name="$1"
+
+# 使用Git命令检查分支是否存在
+if ! git rev-parse --verify "$main_branch_name" >/dev/null 2>&1; then
+  echo "分支 '$main_branch_name' 不存在"
+  exit 1
+fi
+
+# 使用shift移除第一个参数
+shift
+
 release() {
+
+    git checkout $1
+    if [ $? -ne 0 ]; then
+        #/ 命令执行失败
+        echo "切换到分支 $1 失败"
+        exit 1
+    fi
+     
+
     git pull
     echo "git pull"
 
@@ -86,6 +127,13 @@ newVersion() {
 
 feature_branch() {
 
+    git checkout $1
+    if [ $? -ne 0 ]; then
+        #/ 命令执行失败
+        echo "切换到分支 $1 失败"
+        exit 1
+    fi
+
     new_version=$(newVersion "$version" 1)-SNAPSHOT
 
     branch_name=feature-$new_version
@@ -106,8 +154,12 @@ feature_branch() {
 
 hotfix_branch() {
 
-    git checkout master
-    echo "切换到 master 分支"
+    git checkout $1
+    if [ $? -ne 0 ]; then
+        #/ 命令执行失败
+        echo "切换到分支 $1 失败"
+        exit 1
+    fi
 
     master_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
     echo "master 项目版本号: $master_version"
@@ -137,16 +189,13 @@ if [ $# -ge 1 ]; then
   shift
   case "$nameStartOpt" in
     (-r | --release)
-      git checkout master
-      release
+      release $main_branch_name
       ;;
     (-fb | --feature-branch)
-      git checkout master
-      feature_branch
+      feature_branch $main_branch_name
       ;;
     (-hb | --hotfix-branch)
-      git checkout master
-      hotfix_branch
+      hotfix_branch $main_branch_name
     (*)
       echo $usage
       exit 1
