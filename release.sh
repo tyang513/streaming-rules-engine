@@ -183,8 +183,8 @@ hotfix_branch() {
 }
 
 # get arguments
-if [ $# -ge 1 ]; then
-  nameStartOpt="$1"
+while [ $# -ge 1 ]; then
+  nameStartOpt="$2"
   echo $nameStartOpt
   shift
   case "$nameStartOpt" in
@@ -201,6 +201,7 @@ if [ $# -ge 1 ]; then
       exit 1
       ;;
   esac
-fi
+  shift
+done
 
 exit $?
