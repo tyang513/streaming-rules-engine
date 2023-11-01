@@ -51,6 +51,13 @@ release() {
     git pull
     echo "git pull"
 
+    mvn clean package -DskipTests
+    if [ $? -ne 0 ]; then
+        #/ 命令执行失败
+        echo "mvn clean package -DskipTests 打包失败,退出发布"
+        exit 1
+    fi
+
     version_snapshot=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
     echo "项目版本号: $version_snapshot"
 
@@ -80,11 +87,11 @@ release() {
     git commit -m "update version to $version"
     echo "git commit update version to $version"
 
-    mvn clean package
-    echo "mvn clean package"
+    mvn clean package -DskipTests
+    echo "mvn clean package -DskipTests"
 
-    mvn install
-    echo "mvn install"
+    mvn install -DskipTests
+    echo "mvn install -DskipTests"
 
     commit_id=$(git log -1 --pretty=format:%h)
 
